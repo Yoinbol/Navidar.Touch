@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>92C62DE2-7B4A-4912-A7B5-9EB9AC86E8F4</string>
+	<key>IDESourceControlProjectName</key>
+	<string>Navidar</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>F72B7CA5D06EE8D51DF2BDD8A86C429A1B95F187</key>
+		<string>https://github.com/Yoinbol/Navidar.Touch.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>cordova/platforms/ios/Navidar.xcodeproj</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>F72B7CA5D06EE8D51DF2BDD8A86C429A1B95F187</key>
+		<string>../../../../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>https://github.com/Yoinbol/Navidar.Touch.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>111</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>F72B7CA5D06EE8D51DF2BDD8A86C429A1B95F187</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>F72B7CA5D06EE8D51DF2BDD8A86C429A1B95F187</string>
+			<key>IDESourceControlWCCName</key>
+			<string>Navidar.Touch</string>
+		</dict>
+	</array>
+</dict>
+</plist>
