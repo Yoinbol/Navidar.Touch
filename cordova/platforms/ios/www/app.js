@@ -36236,6 +36236,423 @@ Ext.define('Ext.Ajax', {
 });
 
 /**
+ * Provides a cross browser class for retrieving location information.
+ *
+ * Based on the [Geolocation API Specification](http://dev.w3.org/geo/api/spec-source.html)
+ *
+ * When instantiated, by default this class immediately begins tracking location information,
+ * firing a {@link #locationupdate} event when new location information is available.  To disable this
+ * location tracking (which may be battery intensive on mobile devices), set {@link #autoUpdate} to `false`.
+ *
+ * When this is done, only calls to {@link #updateLocation} will trigger a location retrieval.
+ *
+ * A {@link #locationerror} event is raised when an error occurs retrieving the location, either due to a user
+ * denying the application access to it, or the browser not supporting it.
+ *
+ * The below code shows a GeoLocation making a single retrieval of location information.
+ *
+ *     var geo = Ext.create('Ext.util.Geolocation', {
+ *         autoUpdate: false,
+ *         listeners: {
+ *             locationupdate: function(geo) {
+ *                 alert('New latitude: ' + geo.getLatitude());
+ *             },
+ *             locationerror: function(geo, bTimeout, bPermissionDenied, bLocationUnavailable, message) {
+ *                 if(bTimeout){
+ *                     alert('Timeout occurred.');
+ *                 } else {
+ *                     alert('Error occurred.');
+ *                 }
+ *             }
+ *         }
+ *     });
+ *     geo.updateLocation();
+ */
+Ext.define('Ext.util.Geolocation', {
+    extend:  Ext.Evented ,
+    alternateClassName: ['Ext.util.GeoLocation'],
+
+    config: {
+        /**
+         * @event locationerror
+         * Raised when a location retrieval operation failed.
+         *
+         * In the case of calling updateLocation, this event will be raised only once.
+         *
+         * If {@link #autoUpdate} is set to `true`, this event could be raised repeatedly.
+         * The first error is relative to the moment {@link #autoUpdate} was set to `true`
+         * (or this {@link Ext.util.Geolocation} was initialized with the {@link #autoUpdate} config option set to `true`).
+         * Subsequent errors are relative to the moment when the device determines that it's position has changed.
+         * @param {Ext.util.Geolocation} this
+         * @param {Boolean} timeout
+         * Boolean indicating a timeout occurred
+         * @param {Boolean} permissionDenied
+         * Boolean indicating the user denied the location request
+         * @param {Boolean} locationUnavailable
+         * Boolean indicating that the location of the device could not be determined.
+         * For instance, one or more of the location providers used in the location acquisition
+         * process reported an internal error that caused the process to fail entirely.
+         * @param {String} message An error message describing the details of the error encountered.
+         *
+         * This attribute is primarily intended for debugging and should not be used
+         * directly in an application user interface.
+         */
+
+        /**
+         * @event locationupdate
+         * Raised when a location retrieval operation has been completed successfully.
+         * @param {Ext.util.Geolocation} this
+         * Retrieve the current location information from the GeoLocation object by using the read-only
+         * properties: {@link #latitude}, {@link #longitude}, {@link #accuracy}, {@link #altitude}, {@link #altitudeAccuracy}, {@link #heading}, and {@link #speed}.
+         */
+
+        /**
+         * @cfg {Boolean} autoUpdate
+         * When set to `true`, continually monitor the location of the device (beginning immediately)
+         * and fire {@link #locationupdate} and {@link #locationerror} events.
+         */
+        autoUpdate: true,
+
+        /**
+         * @cfg {Number} frequency
+         * The frequency of each update if {@link #autoUpdate} is set to `true`.
+         */
+        frequency: 10000,
+
+        /**
+         * Read-only property representing the last retrieved
+         * geographical coordinate specified in degrees.
+         * @type Number
+         * @readonly
+         */
+        latitude: null,
+
+        /**
+         * Read-only property representing the last retrieved
+         * geographical coordinate specified in degrees.
+         * @type Number
+         * @readonly
+         */
+        longitude: null,
+
+        /**
+         * Read-only property representing the last retrieved
+         * accuracy level of the latitude and longitude coordinates,
+         * specified in meters.
+         *
+         * This will always be a non-negative number.
+         *
+         * This corresponds to a 95% confidence level.
+         * @type Number
+         * @readonly
+         */
+        accuracy: null,
+
+        /**
+         * Read-only property representing the last retrieved
+         * height of the position, specified in meters above the ellipsoid
+         * [WGS84](http://dev.w3.org/geo/api/spec-source.html#ref-wgs).
+         * @type Number
+         * @readonly
+         */
+        altitude: null,
+
+        /**
+         * Read-only property representing the last retrieved
+         * accuracy level of the altitude coordinate, specified in meters.
+         *
+         * If altitude is not null then this will be a non-negative number.
+         * Otherwise this returns `null`.
+         *
+         * This corresponds to a 95% confidence level.
+         * @type Number
+         * @readonly
+         */
+        altitudeAccuracy: null,
+
+        /**
+         * Read-only property representing the last retrieved
+         * direction of travel of the hosting device,
+         * specified in non-negative degrees between 0 and 359,
+         * counting clockwise relative to the true north.
+         *
+         * If speed is 0 (device is stationary), then this returns `NaN`.
+         * @type Number
+         * @readonly
+         */
+        heading: null,
+
+        /**
+         * Read-only property representing the last retrieved
+         * current ground speed of the device, specified in meters per second.
+         *
+         * If this feature is unsupported by the device, this returns `null`.
+         *
+         * If the device is stationary, this returns 0,
+         * otherwise it returns a non-negative number.
+         * @type Number
+         * @readonly
+         */
+        speed: null,
+
+        /**
+         * Read-only property representing when the last retrieved
+         * positioning information was acquired by the device.
+         * @type Date
+         * @readonly
+         */
+        timestamp: null,
+
+        //PositionOptions interface
+        /**
+         * @cfg {Boolean} allowHighAccuracy
+         * When set to `true`, provide a hint that the application would like to receive
+         * the best possible results. This may result in slower response times or increased power consumption.
+         * The user might also deny this capability, or the device might not be able to provide more accurate
+         * results than if this option was set to `false`.
+         */
+        allowHighAccuracy: false,
+
+        /**
+         * @cfg {Number} timeout
+         * The maximum number of milliseconds allowed to elapse between a location update operation
+         * and the corresponding {@link #locationupdate} event being raised.  If a location was not successfully
+         * acquired before the given timeout elapses (and no other internal errors have occurred in this interval),
+         * then a {@link #locationerror} event will be raised indicating a timeout as the cause.
+         *
+         * Note that the time that is spent obtaining the user permission is **not** included in the period
+         * covered by the timeout.  The `timeout` attribute only applies to the location acquisition operation.
+         *
+         * In the case of calling `updateLocation`, the {@link #locationerror} event will be raised only once.
+         *
+         * If {@link #autoUpdate} is set to `true`, the {@link #locationerror} event could be raised repeatedly.
+         * The first timeout is relative to the moment {@link #autoUpdate} was set to `true`
+         * (or this {@link Ext.util.Geolocation} was initialized with the {@link #autoUpdate} config option set to `true`).
+         * Subsequent timeouts are relative to the moment when the device determines that it's position has changed.
+         */
+
+        timeout: Infinity,
+
+        /**
+         * @cfg {Number} maximumAge
+         * This option indicates that the application is willing to accept cached location information whose age
+         * is no greater than the specified time in milliseconds. If `maximumAge` is set to 0, an attempt to retrieve
+         * new location information is made immediately.
+         *
+         * Setting the `maximumAge` to Infinity returns a cached position regardless of its age.
+         *
+         * If the device does not have cached location information available whose age is no
+         * greater than the specified `maximumAge`, then it must acquire new location information.
+         *
+         * For example, if location information no older than 10 minutes is required, set this property to 600000.
+         */
+        maximumAge: 0,
+
+        // @private
+        provider : undefined
+    },
+
+    updateMaximumAge: function() {
+        if (this.watchOperation) {
+            this.updateWatchOperation();
+        }
+    },
+
+    updateTimeout: function() {
+        if (this.watchOperation) {
+            this.updateWatchOperation();
+        }
+    },
+
+    updateAllowHighAccuracy: function() {
+        if (this.watchOperation) {
+            this.updateWatchOperation();
+        }
+    },
+
+    applyProvider: function(config) {
+        if (Ext.feature.has.Geolocation) {
+            if (!config) {
+                if (navigator && navigator.geolocation) {
+                    config = navigator.geolocation;
+                }
+                else if (window.google) {
+                    config = google.gears.factory.create('beta.geolocation');
+                }
+            }
+        }
+        else {
+            this.fireEvent('locationerror', this, false, false, true, 'This device does not support Geolocation.');
+        }
+        return config;
+    },
+
+    updateAutoUpdate: function(newAutoUpdate, oldAutoUpdate) {
+        var me = this,
+            provider = me.getProvider();
+
+        if (oldAutoUpdate && provider) {
+            clearInterval(me.watchOperationId);
+            me.watchOperationId = null;
+        }
+
+        if (newAutoUpdate) {
+            if (!provider) {
+                me.fireEvent('locationerror', me, false, false, true, null);
+                return;
+            }
+
+            try {
+                me.updateWatchOperation();
+            }
+            catch(e) {
+                me.fireEvent('locationerror', me, false, false, true, e.message);
+            }
+        }
+    },
+
+    // @private
+    updateWatchOperation: function() {
+        var me = this,
+            provider = me.getProvider();
+
+        // The native watchPosition method is currently broken in iOS5...
+
+        if (me.watchOperationId) {
+            clearInterval(me.watchOperationId);
+        }
+
+        function pollPosition() {
+            provider.getCurrentPosition(
+                Ext.bind(me.fireUpdate, me),
+                Ext.bind(me.fireError, me),
+                me.parseOptions()
+            );
+        }
+
+        pollPosition();
+        me.watchOperationId = setInterval(pollPosition, this.getFrequency());
+    },
+
+    /**
+     * Executes a onetime location update operation,
+     * raising either a {@link #locationupdate} or {@link #locationerror} event.
+     *
+     * Does not interfere with or restart ongoing location monitoring.
+     * @param {Function} callback
+     * A callback method to be called when the location retrieval has been completed.
+     *
+     * Will be called on both success and failure.
+     *
+     * The method will be passed one parameter, {@link Ext.util.Geolocation}
+     * (**this** reference), set to `null` on failure.
+     *
+     *     geo.updateLocation(function (geo) {
+     *         alert('Latitude: ' + (geo !== null ? geo.latitude : 'failed'));
+     *     });
+     *
+     * @param {Object} [scope]
+     * The scope (**this** reference) in which the handler function is executed.
+     *
+     * **If omitted, defaults to the object which fired the event.**
+     *
+     * <!--positonOptions undocumented param, see W3C spec-->
+     */
+    updateLocation: function(callback, scope, positionOptions) {
+        var me = this,
+            provider = me.getProvider();
+
+        var failFunction = function(message, error) {
+            if (error) {
+                me.fireError(error);
+            }
+            else {
+                me.fireEvent('locationerror', me, false, false, true, message);
+            }
+            if (callback) {
+                callback.call(scope || me, null, me); //last parameter for legacy purposes
+            }
+        };
+
+        if (!provider) {
+            failFunction(null);
+            return;
+        }
+
+        try {
+            provider.getCurrentPosition(
+                //success callback
+                function(position) {
+                    me.fireUpdate(position);
+                    if (callback) {
+                        callback.call(scope || me, me, me); //last parameter for legacy purposes
+                    }
+                },
+                //error callback
+                function(error) {
+                    failFunction(null, error);
+                },
+                positionOptions || me.parseOptions()
+            );
+        }
+        catch(e) {
+            failFunction(e.message);
+        }
+    },
+
+    // @private
+    fireUpdate: function(position) {
+        var me = this,
+            coords = position.coords;
+
+        this.position = position;
+
+        me.setConfig({
+            timestamp: position.timestamp,
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            accuracy: coords.accuracy,
+            altitude: coords.altitude,
+            altitudeAccuracy: coords.altitudeAccuracy,
+            heading: coords.heading,
+            speed: coords.speed
+        });
+
+        me.fireEvent('locationupdate', me);
+    },
+
+    // @private
+    fireError: function(error) {
+        var errorCode = error.code;
+        this.fireEvent('locationerror', this,
+            errorCode == error.TIMEOUT,
+            errorCode == error.PERMISSION_DENIED,
+            errorCode == error.POSITION_UNAVAILABLE,
+            error.message == undefined ? null : error.message
+        );
+    },
+
+    // @private
+    parseOptions: function() {
+        var timeout = this.getTimeout(),
+            ret = {
+                maximumAge: this.getMaximumAge(),
+                enableHighAccuracy: this.getAllowHighAccuracy()
+            };
+
+        //Google doesn't like Infinity
+        if (timeout !== Infinity) {
+            ret.timeout = timeout;
+        }
+        return ret;
+    },
+
+    destroy : function() {
+        this.setAutoUpdate(false);
+    }
+});
+
+/**
  * @class Ext.ComponentQuery
  * @extends Object
  * @singleton
@@ -55731,6 +56148,803 @@ Ext.define('Ext.data.ArrayStore', {
     // Ext.reg('simplestore', Ext.data.SimpleStore);
 });
 
+/**
+ * @private
+ *
+ * This object handles communication between the WebView and Sencha's native shell.
+ * Currently it has two primary responsibilities:
+ *
+ * 1. Maintaining unique string ids for callback functions, together with their scope objects
+ * 2. Serializing given object data into HTTP GET request parameters
+ *
+ * As an example, to capture a photo from the device's camera, we use `Ext.device.Camera.capture()` like:
+ *
+ *     Ext.device.Camera.capture(
+ *         function(dataUri){
+ *             // Do something with the base64-encoded `dataUri` string
+ *         },
+ *         function(errorMessage) {
+ *
+ *         },
+ *         callbackScope,
+ *         {
+ *             quality: 75,
+ *             width: 500,
+ *             height: 500
+ *         }
+ *     );
+ *
+ * Internally, `Ext.device.Communicator.send()` will then be invoked with the following argument:
+ *
+ *     Ext.device.Communicator.send({
+ *         command: 'Camera#capture',
+ *         callbacks: {
+ *             onSuccess: function() {
+ *                 // ...
+ *             },
+ *             onError: function() {
+ *                 // ...
+ *             }
+ *         },
+ *         scope: callbackScope,
+ *         quality: 75,
+ *         width: 500,
+ *         height: 500
+ *     });
+ *
+ * Which will then be transformed into a HTTP GET request, sent to native shell's local
+ * HTTP server with the following parameters:
+ *
+ *     ?quality=75&width=500&height=500&command=Camera%23capture&onSuccess=3&onError=5
+ *
+ * Notice that `onSuccess` and `onError` have been converted into string ids (`3` and `5`
+ * respectively) and maintained by `Ext.device.Communicator`.
+ *
+ * Whenever the requested operation finishes, `Ext.device.Communicator.invoke()` simply needs
+ * to be executed from the native shell with the corresponding ids given before. For example:
+ *
+ *     Ext.device.Communicator.invoke('3', ['DATA_URI_OF_THE_CAPTURED_IMAGE_HERE']);
+ *
+ * will invoke the original `onSuccess` callback under the given scope. (`callbackScope`), with
+ * the first argument of 'DATA_URI_OF_THE_CAPTURED_IMAGE_HERE'
+ *
+ * Note that `Ext.device.Communicator` maintains the uniqueness of each function callback and
+ * its scope object. If subsequent calls to `Ext.device.Communicator.send()` have the same
+ * callback references, the same old ids will simply be reused, which guarantee the best possible
+ * performance for a large amount of repetitive calls.
+ */
+Ext.define('Ext.device.communicator.Default', {
+
+    SERVER_URL: 'http://localhost:3000', // Change this to the correct server URL
+
+    callbackDataMap: {},
+
+    callbackIdMap: {},
+
+    idSeed: 0,
+
+    globalScopeId: '0',
+
+    generateId: function() {
+        return String(++this.idSeed);
+    },
+
+    getId: function(object) {
+        var id = object.$callbackId;
+
+        if (!id) {
+            object.$callbackId = id = this.generateId();
+        }
+
+        return id;
+    },
+
+    getCallbackId: function(callback, scope) {
+        var idMap = this.callbackIdMap,
+            dataMap = this.callbackDataMap,
+            id, scopeId, callbackId, data;
+
+        if (!scope) {
+            scopeId = this.globalScopeId;
+        } else if (scope.isIdentifiable) {
+            scopeId = scope.getId();
+        } else {
+            scopeId = this.getId(scope);
+        }
+
+        callbackId = this.getId(callback);
+
+        if (!idMap[scopeId]) {
+            idMap[scopeId] = {};
+        }
+
+        if (!idMap[scopeId][callbackId]) {
+            id = this.generateId();
+            data = {
+                callback: callback,
+                scope: scope
+            };
+
+            idMap[scopeId][callbackId] = id;
+            dataMap[id] = data;
+        }
+
+        return idMap[scopeId][callbackId];
+    },
+
+    getCallbackData: function(id) {
+        return this.callbackDataMap[id];
+    },
+
+    invoke: function(id, args) {
+        var data = this.getCallbackData(id);
+
+        data.callback.apply(data.scope, args);
+    },
+
+    send: function(args) {
+        var callbacks, scope, name, callback;
+
+        if (!args) {
+            args = {};
+        } else if (args.callbacks) {
+            callbacks = args.callbacks;
+            scope = args.scope;
+
+            delete args.callbacks;
+            delete args.scope;
+
+            for (name in callbacks) {
+                if (callbacks.hasOwnProperty(name)) {
+                    callback = callbacks[name];
+
+                    if (typeof callback == 'function') {
+                        args[name] = this.getCallbackId(callback, scope);
+                    }
+                }
+            }
+        }
+
+        args.__source = document.location.href;
+
+        var result = this.doSend(args);
+
+        return (result && result.length > 0) ? JSON.parse(result) : null;
+    },
+
+    doSend: function(args) {
+        var xhr = new XMLHttpRequest();
+
+        xhr.open('GET', this.SERVER_URL + '?' + Ext.Object.toQueryString(args) + '&_dc=' + new Date().getTime(), false);
+
+        // wrap the request in a try/catch block so we can check if any errors are thrown and attempt to call any
+        // failure/callback functions if defined
+        try {
+            xhr.send(null);
+
+            return xhr.responseText;
+        } catch(e) {
+            if (args.failure) {
+                this.invoke(args.failure);
+            } else if (args.callback) {
+                this.invoke(args.callback);
+            }
+        }
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.communicator.Android', {
+    extend:  Ext.device.communicator.Default ,
+
+    doSend: function(args) {
+        return window.Sencha.action(JSON.stringify(args));
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.Communicator', {
+               
+                                          
+                                         
+      
+
+    singleton: true,
+
+    constructor: function() {
+        if (Ext.os.is.Android) {
+            return new Ext.device.communicator.Android();
+        }
+
+        return new Ext.device.communicator.Default();
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.connection.Abstract', {
+    extend:  Ext.Evented ,
+    mixins: [ Ext.mixin.Observable ],
+
+    config: {
+        online: false,
+        type: null
+    },
+
+    /**
+     * @event online
+     * Fires when the device goes online
+     */
+    
+    /**
+     * @event offline
+     * Fires when the device goes offline
+     */
+
+    /**
+     * @property {String} UNKNOWN
+     * Text label for a connection type.
+     */
+    UNKNOWN: 'Unknown connection',
+
+    /**
+     * @property {String} ETHERNET
+     * Text label for a connection type.
+     */
+    ETHERNET: 'Ethernet connection',
+
+    /**
+     * @property {String} WIFI
+     * Text label for a connection type.
+     */
+    WIFI: 'WiFi connection',
+
+    /**
+     * @property {String} CELL_2G
+     * Text label for a connection type.
+     */
+    CELL_2G: 'Cell 2G connection',
+
+    /**
+     * @property {String} CELL_3G
+     * Text label for a connection type.
+     */
+    CELL_3G: 'Cell 3G connection',
+
+    /**
+     * @property {String} CELL_4G
+     * Text label for a connection type.
+     */
+    CELL_4G: 'Cell 4G connection',
+
+    /**
+     * @property {String} NONE
+     * Text label for a connection type.
+     */
+    NONE: 'No network connection',
+
+    /**
+     * True if the device is currently online
+     * @return {Boolean} online
+     */
+    isOnline: function() {
+        return this.getOnline();
+    }
+
+    /**
+     * @method getType
+     * Returns the current connection type.
+     * @return {String} type
+     */
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.connection.Sencha', {
+    extend:  Ext.device.connection.Abstract ,
+
+    /**
+     * @event onlinechange
+     * Fires when the connection status changes.
+     * @param {Boolean} online True if you are {@link Ext.device.Connection#isOnline online}
+     * @param {String} type The new online {@link Ext.device.Connection#getType type}
+     */
+
+    constructor: function() {
+        this.callSuper(arguments);
+        Ext.device.Communicator.send({
+            command: 'Connection#watch',
+            callbacks: {
+                callback: this.onConnectionChange
+            },
+            scope: this
+        });
+    },
+
+    onConnectionChange: function(e) {
+        this.setOnline(Boolean(e.online));
+        this.setType(this[e.type]);
+
+        this.fireEvent('onlinechange', this.getOnline(), this.getType());
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.connection.Cordova', {
+    alternateClassName: 'Ext.device.connection.PhoneGap',
+    extend:  Ext.device.connection.Abstract ,
+
+    constructor: function() {
+        var me = this;
+        
+        document.addEventListener('online', function() {
+            me.fireEvent('online', me);
+        });
+
+        document.addEventListener('offline', function() {
+            me.fireEvent('offline', me);
+        });
+    },
+
+    syncOnline: function() {
+        var type = navigator.connection.type;
+        this._type = type;
+        this._online = type != Connection.NONE;
+    },
+
+    getOnline: function() {
+        this.syncOnline();
+        return this._online;
+    },
+
+    getType: function() {
+        this.syncOnline();
+        return this._type;
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.connection.Simulator', {
+    extend:  Ext.device.connection.Abstract ,
+
+    getOnline: function() {
+        this._online = navigator.onLine;
+        this._type = Ext.device.Connection.UNKNOWN;
+        return this._online;
+    }
+});
+
+/**
+ * This class is used to check if the current device is currently online or not. It has three different implementations:
+ *
+ * - Sencha Packager
+ * - Cordova
+ * - Simulator
+ *
+ * Both the Sencha Packager and Cordova implementations will use the native functionality to determine if the current
+ * device is online. The Simulator version will simply use `navigator.onLine`.
+ *
+ * When this singleton ({@link Ext.device.Connection}) is instantiated, it will automatically decide which version to
+ * use based on the current platform.
+ *
+ * ## Examples
+ *
+ * Determining if the current device is online:
+ *
+ *     alert(Ext.device.Connection.isOnline());
+ *
+ * Checking the type of connection the device has:
+ *
+ *     alert('Your connection type is: ' + Ext.device.Connection.getType());
+ *
+ * The available connection types are:
+ *
+ * - {@link Ext.device.Connection#UNKNOWN UNKNOWN} - Unknown connection
+ * - {@link Ext.device.Connection#ETHERNET ETHERNET} - Ethernet connection
+ * - {@link Ext.device.Connection#WIFI WIFI} - WiFi connection
+ * - {@link Ext.device.Connection#CELL_2G CELL_2G} - Cell 2G connection
+ * - {@link Ext.device.Connection#CELL_3G CELL_3G} - Cell 3G connection
+ * - {@link Ext.device.Connection#CELL_4G CELL_4G} - Cell 4G connection
+ * - {@link Ext.device.Connection#NONE NONE} - No network connection
+ *
+ * @mixins Ext.device.connection.Abstract
+ *
+ * @aside guide native_apis
+ */
+Ext.define('Ext.device.Connection', {
+    singleton: true,
+
+               
+                                  
+                                       
+                                        
+                                         
+      
+
+    /**
+     * @event onlinechange
+     * @inheritdoc Ext.device.connection.Sencha#onlinechange
+     */
+
+    constructor: function() {
+        var browserEnv = Ext.browser.is;
+
+        if (browserEnv.WebView) {
+            if (browserEnv.Cordova) {
+                return Ext.create('Ext.device.connection.Cordova');
+            } else if (browserEnv.Sencha) {
+                return Ext.create('Ext.device.connection.Sencha');
+            }
+        }
+        return Ext.create('Ext.device.connection.Simulator');
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.geolocation.Abstract', {
+    config: {
+        /**
+         * @cfg {Number} maximumAge
+         * This option indicates that the application is willing to accept cached location information whose age
+         * is no greater than the specified time in milliseconds. If maximumAge is set to 0, an attempt to retrieve
+         * new location information is made immediately.
+         */
+        maximumAge: 0,
+
+        /**
+         * @cfg {Number} frequency The default frequency to get the current position when using {@link Ext.device.Geolocation#watchPosition}.
+         */
+        frequency: 10000,
+
+        /**
+         * @cfg {Boolean} allowHighAccuracy True to allow high accuracy when getting the current position.
+         */
+        allowHighAccuracy: false,
+
+        /**
+         * @cfg {Number} timeout
+         * The maximum number of milliseconds allowed to elapse between a location update operation.
+         */
+        timeout: Infinity
+    },
+
+    /**
+     * Attempts to get the current position of this device.
+     *
+     *     Ext.device.Geolocation.getCurrentPosition({
+     *         success: function(position) {
+     *             console.log(position);
+     *         },
+     *         failure: function() {
+     *             Ext.Msg.alert('Geolocation', 'Something went wrong!');
+     *         }
+     *     });
+     *
+     * *Note:* If you want to watch the current position, you could use {@link Ext.device.Geolocation#watchPosition} instead.
+     *
+     * @param {Object} config An object which contains the following config options:
+     *
+     * @param {Function} config.success
+     * The function to call when the location of the current device has been received.
+     *
+     * @param {Object} config.success.position
+     *
+     * @param {Function} config.failure
+     * The function that is called when something goes wrong.
+     *
+     * @param {Object} config.scope
+     * The scope of the `success` and `failure` functions.
+     *
+     * @param {Number} config.maximumAge
+     * The maximum age of a cached location. If you do not enter a value for this, the value of {@link #maximumAge}
+     * will be used.
+     *
+     * @param {Number} config.timeout
+     * The timeout for this request. If you do not specify a value, it will default to {@link #timeout}.
+     *
+     * @param {Boolean} config.allowHighAccuracy
+     * True to enable allow accuracy detection of the location of the current device. If you do not specify a value, it will
+     * default to {@link #allowHighAccuracy}.
+     */
+    getCurrentPosition: function(config) {
+        var defaultConfig = Ext.device.geolocation.Abstract.prototype.config;
+
+        config = Ext.applyIf(config, {
+            maximumAge: defaultConfig.maximumAge,
+            frequency: defaultConfig.frequency,
+            allowHighAccuracy: defaultConfig.allowHighAccuracy,
+            timeout: defaultConfig.timeout
+        });
+
+        if (!config.success) {
+            Ext.Logger.warn('You need to specify a `success` function for #getCurrentPosition');
+        }
+
+        return config;
+    },
+
+    /**
+     * Watches for the current position and calls the callback when successful depending on the specified {@link #frequency}.
+     *
+     *     Ext.device.Geolocation.watchPosition({
+     *         callback: function(position) {
+     *             console.log(position);
+     *         },
+     *         failure: function() {
+     *             Ext.Msg.alert('Geolocation', 'Something went wrong!');
+     *         }
+     *     });
+     *
+     * @param {Object} config An object which contains the following config options:
+     *
+     * @param {Function} config.callback
+     * The function to be called when the position has been updated.
+     *
+     * @param {Function} config.failure
+     * The function that is called when something goes wrong.
+     *
+     * @param {Object} config.scope
+     * The scope of the `success` and `failure` functions.
+     *
+     * @param {Boolean} config.frequency
+     * The frequency in which to call the supplied callback. Defaults to {@link #frequency} if you do not specify a value.
+     *
+     * @param {Boolean} config.allowHighAccuracy
+     * True to enable allow accuracy detection of the location of the current device. If you do not specify a value, it will
+     * default to {@link #allowHighAccuracy}.
+     */
+    watchPosition: function(config) {
+        var defaultConfig = Ext.device.geolocation.Abstract.prototype.config;
+
+        config = Ext.applyIf(config, {
+            maximumAge: defaultConfig.maximumAge,
+            frequency: defaultConfig.frequency,
+            allowHighAccuracy: defaultConfig.allowHighAccuracy,
+            timeout: defaultConfig.timeout
+        });
+
+        if (!config.callback) {
+            Ext.Logger.warn('You need to specify a `callback` function for #watchPosition');
+        }
+
+        return config;
+    },
+
+    /**
+     * If you are currently watching for the current position, this will stop that task.
+     */
+    clearWatch: function() {}
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.geolocation.Cordova', {
+    alternateClassName: 'Ext.device.geolocation.PhoneGap',
+    extend:  Ext.device.geolocation.Abstract ,
+    activeWatchID: null,
+    getCurrentPosition: function(config) {
+        config = this.callParent(arguments);
+        navigator.geolocation.getCurrentPosition(config.success, config.failure, config);
+        return config;
+    },
+
+    watchPosition: function(config) {
+        config = this.callParent(arguments);
+        if (this.activeWatchID) {
+            this.clearWatch();
+        }
+        this.activeWatchID = navigator.geolocation.watchPosition(config.callback, config.failure, config);
+        return config;
+    },
+
+    clearWatch: function() {
+        if (this.activeWatchID) {
+            navigator.geolocation.clearWatch(this.activeWatchID);
+            this.activeWatchID = null;
+        }
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.geolocation.Sencha', {
+    extend:  Ext.device.geolocation.Abstract ,
+
+    getCurrentPosition: function(config) {
+        config = this.callParent([config]);
+
+        Ext.apply(config, {
+            command: 'Geolocation#getCurrentPosition',
+            callbacks: {
+                success: config.success,
+                failure: config.failure
+            }
+        });
+
+        Ext.applyIf(config, {
+            scope: this
+        });
+
+        delete config.success;
+        delete config.failure;
+
+        Ext.device.Communicator.send(config);
+
+        return config;
+    },
+
+    watchPosition: function(config) {
+        config = this.callParent([config]);
+
+        Ext.apply(config, {
+            command: 'Geolocation#watchPosition',
+            callbacks: {
+                success: config.callback,
+                failure: config.failure
+            }
+        });
+
+        Ext.applyIf(config, {
+            scope: this
+        });
+
+        delete config.callback;
+        delete config.failure;
+
+        Ext.device.Communicator.send(config);
+
+        return config;
+    },
+
+    clearWatch: function() {
+        Ext.device.Communicator.send({
+            command: 'Geolocation#clearWatch'
+        });
+    }
+});
+
+/**
+ * @private
+ */
+Ext.define('Ext.device.geolocation.Simulator', {
+    extend:  Ext.device.geolocation.Abstract ,
+                                       
+
+    getCurrentPosition: function(config) {
+        config = this.callParent([config]);
+
+        Ext.apply(config, {
+            autoUpdate: false,
+            listeners: {
+                scope: this,
+                locationupdate: function(geolocation) {
+                    if (config.success) {
+                        config.success.call(config.scope || this, geolocation.position);
+                    }
+                },
+                locationerror: function() {
+                    if (config.failure) {
+                        config.failure.call(config.scope || this);
+                    }
+                }
+            }
+        });
+
+        this.geolocation = Ext.create('Ext.util.Geolocation', config);
+        this.geolocation.updateLocation();
+
+        return config;
+    },
+
+    watchPosition: function(config) {
+        config = this.callParent([config]);
+
+        Ext.apply(config, {
+            listeners: {
+                scope: this,
+                locationupdate: function(geolocation) {
+                    if (config.callback) {
+                        config.callback.call(config.scope || this, geolocation.position);
+                    }
+                },
+                locationerror: function() {
+                    if (config.failure) {
+                        config.failure.call(config.scope || this);
+                    }
+                }
+            }
+        });
+
+        this.geolocation = Ext.create('Ext.util.Geolocation', config);
+
+        return config;
+    },
+
+    clearWatch: function() {
+        if (this.geolocation) {
+            this.geolocation.destroy();
+        }
+
+        this.geolocation = null;
+    }
+});
+
+/**
+ * Provides access to the native Geolocation API when running on a device. There are three implementations of this API:
+ *
+ * - Sencha Packager
+ * - [PhoneGap](http://docs.phonegap.com/en/1.4.1/phonegap_device_device.md.html)
+ * - Browser
+ *
+ * This class will automatically select the correct implementation depending on the device your application is running on.
+ *
+ * ## Examples
+ *
+ * Getting the current location:
+ *
+ *     Ext.device.Geolocation.getCurrentPosition({
+ *         success: function(position) {
+ *             console.log(position.coords);
+ *         },
+ *         failure: function() {
+ *             console.log('something went wrong!');
+ *         }
+ *     });
+ *
+ * Watching the current location:
+ *
+ *     Ext.device.Geolocation.watchPosition({
+ *         frequency: 3000, // Update every 3 seconds
+ *         callback: function(position) {
+ *             console.log('Position updated!', position.coords);
+ *         },
+ *         failure: function() {
+ *             console.log('something went wrong!');
+ *         }
+ *     });
+ *
+ * @mixins Ext.device.geolocation.Abstract
+ *
+ * @aside guide native_apis
+ */
+Ext.define('Ext.device.Geolocation', {
+    singleton: true,
+
+               
+                                  
+                                         
+                                        
+                                          
+      
+
+    constructor: function() {
+        var browserEnv = Ext.browser.is;
+        if (browserEnv.WebView) {
+            if (browserEnv.Cordova) {
+                return Ext.create('Ext.device.geolocation.Cordova');
+            } else if (browserEnv.Sencha) {
+                return Ext.create('Ext.device.geolocation.Sencha');
+            }
+        }
+
+        return Ext.create('Ext.device.geolocation.Simulator');
+    }
+});
+
 // Using @mixins to include all members of Ext.event.Touch
 // into here to keep documentation simpler
 /**
@@ -62873,6 +64087,144 @@ Ext.define('Ext.viewport.Viewport', {
  * you should **not** use {@link Ext#onReady}.
  */
 
+/**
+ * Created by Diego Garcia on 1/22/15.
+ */
+Ext.define('Navidar.mixin.Serviceable', {
+
+    /**
+     * Returns a service instance from the application's service cache
+     * based on a dot-notation path. For instance, we could pass in 'native.connection'
+     * to get the connection service instance.
+     *
+     * @param {String} servicePath
+     * @returns {Object} A service instance
+     */
+    getService : function(servicePath) {
+        var me = this;
+        return me.getApplication().getService(servicePath);
+    }
+});
+
+/**
+ * Created by Diego Garcia on 1/20/15.
+ *
+ * Base controller
+ */
+Ext.define('Navidar.controller.Base', {
+    extend  :  Ext.app.Controller ,
+
+    mixins : [
+         Navidar.mixin.Serviceable 
+    ],
+
+    config  : {
+
+        requiredFacebookPermissions: ['public_profile', 'email', 'user_friends']
+
+    },
+
+    /**
+     * shows a loading indicator
+     */
+    mask : function(view, message) {
+        var toMask = view || Ext.Viewport;
+        toMask.mask({
+            xtype  : 'loadmask',
+            zIndex : 2147483647,
+            message: message || _getText('GLOBAL', 'loading')
+        });
+    },
+
+    /**
+     * removes the loading indicator
+     */
+    unmask : function(view) {
+        var toMask = view || Ext.Viewport;
+        toMask.unmask();
+    },
+
+    /**
+     * Displays a collection of errors resulting from failed sql queries
+     */
+    showMessage : function(message) {
+        Ext.Msg.alert(null, message);
+    }
+});
+
+/**
+ * Created by Diego Garcia on 1/22/15.
+ *
+ * Base of all app services
+ */
+Ext.define('Navidar.service.Base', {
+
+    config : {
+        /**
+         * @cfg {Object} application
+         * The application instance
+         */
+        application : null
+    },
+
+    mixins : [
+         Navidar.mixin.Serviceable 
+    ],
+
+    /**
+     * Creates a new service
+     *
+     * @param config
+     * A standard configuration object
+     */
+    constructor : function(config) {
+        var me = this;
+
+        if (config === undefined || 'application' in config === false) {
+            console.error('An application instance is required to construct a service', config);
+            return;
+        }
+
+        me.initConfig(config);
+        me.callParent(arguments);
+    }
+
+});
+
+/**
+ * Created by Diego Garcia on 1/22/15.
+ *
+ * Service to handle device logic related to the device
+ */
+Ext.define('Navidar.service.Device', {
+    extend  :  Navidar.service.Base ,
+
+                
+                                
+                                
+      
+
+    /**
+     * Returns the network connection status of the device
+     *
+     * @returns {Boolean}
+     */
+    isOnline : function() {
+        return Ext.device.Connection.isOnline();
+    }
+});
+
+/**
+ * Created by Diego Garcia on 1/22/15.
+ */
+Ext.define('Navidar.service.Utility', {
+    extend  :  Navidar.service.Base ,
+
+    config: {
+
+    }
+});
+
 Ext.define('Navidar.view.Main', {
     extend:  Ext.tab.Panel ,
     xtype: 'main',
@@ -62889,18 +64241,348 @@ Ext.define('Navidar.view.Main', {
 
                 styleHtmlContent: true,
                 scrollable: true,
+                layout  : 'vbox',
 
-                items: {
-                    docked: 'top',
-                    xtype: 'titlebar',
-                    title: 'Welcome to Navidar'
-                },
-
-                html: [
-                    "Content here..."
-                ].join("")
+                items: [
+                    {
+                        docked: 'top',
+                        xtype: 'titlebar',
+                        title: 'Welcome to Navidar'
+                    },
+                    {
+                        xtype   : 'button',
+                        itemId  : 'friends',
+                        text    : 'Get friends'
+                    }
+                ]
             }
         ]
+    }
+});
+
+/**
+ * Created by Diego Garcia on 1/20/15.
+ *
+ * Start view. Intended to let the user login.
+ */
+Ext.define('Navidar.view.Start', {
+    extend  :  Ext.Container ,
+    xtype   : 'start-view',
+
+    config  : {
+
+        scrollable  : true,
+        baseCls     : 'start-view',
+        data        : {},
+
+        tpl    : new Ext.XTemplate(''.concat(
+                '<div class="start-view-container">',
+                '   <div class="img-container">',
+                '       <img src="resources/images/navidar-logo.jpeg" />',
+                '   </div>',
+                '   <div class="login-container">',
+                '       <i class="ion-social-facebook"></i>',
+                '       <span>{[_getText(\'START\', \'loginWithFb\')]}</span>',
+                '   </div>',
+                '</div>'
+            )
+        )
+    }
+});
+
+/**
+ * Created by Diego Garcia on 1/22/15.
+ *
+ * Application controller
+ */
+Ext.define('Navidar.controller.Application', {
+    extend  :  Navidar.controller.Base ,
+
+                   
+                                 
+                                 
+      
+
+    config  : {
+
+        views: [
+            'Start',
+            'Main'
+        ]
+    },
+
+    /**
+     * Application init function. This runs before the launch function.
+     */
+    init: function (app) {
+        var me = this;
+        me.initServices();
+    },
+
+    initServices: function () {
+        var me  = this,
+            app = me.getApplication();
+
+        app.services = {
+            device  : Ext.create('Navidar.service.Device', { application  : app }),
+            utility : Ext.create('Navidar.service.Utility', { application  : app })
+        };
+    },
+
+    launch: function () {
+        var me = this;
+        me.checkFacebookLoginStatus(me.checkFacebookLoginStatusCallback, me);
+    },
+
+    checkFacebookLoginStatus: function (callback, scope) {
+        var me              = this,
+            deviceService   = me.getService('device'),
+            callbackScope   = scope || me,
+            response        = {
+                success         : true,
+                userData        : {}
+            };
+
+        if(deviceService.isOnline()) {
+
+            //Check the fb user session status
+            facebookConnectPlugin.getLoginStatus(function (session) {
+
+                if(session.status === 'connected') {
+
+                    var fbPermissions   = me.getRequiredFacebookPermissions();
+
+                    //Get fb user data
+                    facebookConnectPlugin.api('/me', fbPermissions, function (userInfoResponse) {
+                        response.userData = userInfoResponse;
+                        callback && callback.call(callbackScope, response);
+                    });
+
+                }
+                else {
+                    // User is not connected to fb or the app
+                    response.success = false;
+                    callback && callback.call(callbackScope, response);
+                }
+
+            }, function (error) {
+                //Error getting the facebook login status
+                response.success = false;
+                callback && callback.call(callbackScope, response);
+            });
+        }
+        else {
+            //Device is offline
+            response.success = false;
+            callback && callback.call(callbackScope, response);
+        }
+    },
+
+    checkFacebookLoginStatusCallback: function (loginResponse) {
+
+        // Destroy the #appLoadingIndicator element
+        Ext.fly('appLoadingIndicator').destroy();
+
+        if(loginResponse.success === true) {
+
+            // Initialize the main view
+            Ext.Viewport.add(Ext.create('Navidar.view.Main'));
+
+        }
+        else {
+            //There was a problem checking the facebook login status
+            //Redirect the user to the start view
+            Ext.Viewport.add(Ext.create('Navidar.view.Start'));
+        }
+    }
+});
+
+/**
+ * Created by Diego Garcia on 1/20/15.
+ *
+ * Start controller
+ */
+Ext.define('Navidar.controller.Start', {
+    extend  :  Navidar.controller.Base ,
+
+    config  : {
+        refs    : {
+            startView   : 'start-view'
+        },
+        control : {
+            startView   : {
+                initialize  : 'onStartViewInitialize'
+            }
+        },
+
+        views: [
+            'Main'
+        ]
+    },
+
+    onStartViewInitialize: function (startView) {
+        var me = this;
+
+        //Attach the tap listener to the login button
+        startView.element.on({
+            tap: me.loginWithFacebook,
+            scope: me,
+            delegate: '.login-container'
+        });
+    },
+
+    loginWithFacebook: function () {
+        var me              = this,
+            deviceService   = me.getService('device');
+
+        if(deviceService.isOnline()) {
+
+            me.mask(null, _getText('START', 'checkingSession'));
+
+            //Check the fb user session status
+            facebookConnectPlugin.getLoginStatus(function (session) {
+
+                me.unmask();
+
+                if(session.status === 'connected') {
+
+                    //Get the user data and show the main view
+                    me.getUserFacebookData();
+                }
+                else {
+                    //The user is not disconnected from fb or from the app
+                    //Try to login the user on facebook
+                    facebookConnectPlugin.login(fbPermissions, function (loginResponse) {
+
+                        //Get the user data and show the main view
+                        me.getUserFacebookData();
+
+                    }, function (error) {
+                        alert('Error!');
+                    });
+                }
+
+            }, function (error) {
+                //Error getting the login status
+
+            });
+        }
+        else {
+            //Device is offline
+            var offlineMessage = _getText('GLOBAL', 'networkRequired');
+            me.showMessage(offlineMessage);
+        }
+    },
+
+    getUserFacebookData: function () {
+        var me              = this,
+            fbPermissions   = me.getRequiredFacebookPermissions();
+
+        me.mask(null, _getText('START', 'gettingUserData'));
+
+        //Get fb user data
+        facebookConnectPlugin.api('/me', fbPermissions, function (userInfoResponse) {
+
+            me.unmask();
+
+            var currentView = Ext.Viewport.getActiveItem();
+
+            // Initialize the main view
+            Ext.Viewport.add(Ext.create('Navidar.view.Main'));
+
+            //Destroy the current view (if applies)
+            if(currentView) {
+                currentView.destroy();
+            }
+
+        }, function (error) {
+            //Error getting the user data
+
+        });
+    }
+});
+
+/**
+ * Created by Diego Garcia on 1/18/15.
+ */
+Ext.define('Navidar.controller.Main', {
+    extend:  Navidar.controller.Base ,
+    
+    config: {
+        refs: {
+            main: 'main'
+        },
+        control: {
+            main: {
+                initialize: 'onMainInitialize'
+            }
+        }
+    },
+
+    onMainInitialize: function (mainView) {
+        var me = this,
+            friendsButton = mainView.down('button[itemId = friends]');
+
+        friendsButton.on({
+            tap: me.loadUserFriends,
+            scope: me
+        });
+    },
+
+    loadUserFriends: function () {
+
+
+        console.log('Aqui estoy 2!!');
+
+        //Get fb user data
+        facebookConnectPlugin.api('/me/friends', ['user_friends'], function (friendsResponse) {
+
+            console.log('User friends data', friendsResponse);
+        }, function (error) {
+            console.error(error);
+        });
+
+    },
+
+    onButtonTap: function (mainView) {
+
+        var textarea = mainView.down('textareafield[itemId = fbdata]');
+
+        facebookConnectPlugin.getLoginStatus(function (session) {
+
+            switch (session.status) {
+                case 'connected':
+
+                    var fbFields = ['public_profile', 'email'];
+
+                    //Get fb user data
+                    facebookConnectPlugin.api('/me', fbFields, function (userInfoResponse) {
+
+                        textarea.setValue(JSON.stringify(userInfoResponse));
+                    });
+
+                    break;
+
+                case 'not_authorized':
+                    alert('The person is logged into Facebook, but not your app.');
+                    break;
+
+                default:
+                    //alert('The person is not logged into Facebook, so we\'re not sure if they are logged into this app or not.');
+
+                    facebookConnectPlugin.login(["public_profile", "email"], function (loginResponse) {
+
+                        alert(loginResponse);
+                        textarea.setValue(JSON.stringify(loginResponse));
+                        
+                    }, function (error) {
+
+                        alert('Error!');
+                    });
+                    break;
+            }
+        }, true);
+
     }
 });
 
@@ -62923,7 +64605,11 @@ Ext.application({
                         
       
 
-    views: [
+    views: [],
+
+    controllers: [
+        'Application',
+        'Start',
         'Main'
     ],
 
@@ -62947,10 +64633,23 @@ Ext.application({
 
     launch: function() {
         // Destroy the #appLoadingIndicator element
-        Ext.fly('appLoadingIndicator').destroy();
+        //Ext.fly('appLoadingIndicator').destroy();
 
         // Initialize the main view
-        Ext.Viewport.add(Ext.create('Navidar.view.Main'));
+        //Ext.Viewport.add(Ext.create('Navidar.view.Start'));
+    },
+
+    /**
+     * Returns a service instance from the application's service cache
+     * based on a dot-notation path. For instance, we could pass in 'native.connection'
+     * to get the connection service instance.
+     *
+     * @param {String} servicePath
+     * @returns {Object} A service instance
+     */
+    getService : function(servicePath) {
+        var me = this;
+        return me.services[servicePath];
     },
 
     onUpdated: function() {

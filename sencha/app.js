@@ -17,7 +17,11 @@ Ext.application({
         'Ext.MessageBox'
     ],
 
-    views: [
+    views: [],
+
+    controllers: [
+        'Application',
+        'Start',
         'Main'
     ],
 
@@ -41,10 +45,23 @@ Ext.application({
 
     launch: function() {
         // Destroy the #appLoadingIndicator element
-        Ext.fly('appLoadingIndicator').destroy();
+        //Ext.fly('appLoadingIndicator').destroy();
 
         // Initialize the main view
-        Ext.Viewport.add(Ext.create('Navidar.view.Main'));
+        //Ext.Viewport.add(Ext.create('Navidar.view.Start'));
+    },
+
+    /**
+     * Returns a service instance from the application's service cache
+     * based on a dot-notation path. For instance, we could pass in 'native.connection'
+     * to get the connection service instance.
+     *
+     * @param {String} servicePath
+     * @returns {Object} A service instance
+     */
+    getService : function(servicePath) {
+        var me = this;
+        return me.services[servicePath];
     },
 
     onUpdated: function() {

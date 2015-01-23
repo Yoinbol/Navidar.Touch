@@ -48,6 +48,10 @@
             "x-bootstrap": true
         },
         {
+            "path": "resources/js/locale.js",
+            "update": "delta"
+        },
+        {
             "path": "app.js",
             "bundle": true,  /* Indicates that all class dependencies are concatenated into this file when build */
             "update": "delta"
@@ -76,6 +80,10 @@
     "css": [
         {
             "path": "resources/css/app.css",
+            "update": "delta"
+        },
+        {
+            "path"  : "resources/css/ionicons.css",
             "update": "delta"
         }
     ],
@@ -109,7 +117,9 @@
         "resources/images",
         "resources/icons",
         "resources/startup",
-        "resources/js"
+        "resources/js",
+        "resources/fonts",
+        "resources/locales"
     ],
 
     /**

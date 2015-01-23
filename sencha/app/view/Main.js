@@ -14,16 +14,20 @@ Ext.define('Navidar.view.Main', {
 
                 styleHtmlContent: true,
                 scrollable: true,
+                layout  : 'vbox',
 
-                items: {
-                    docked: 'top',
-                    xtype: 'titlebar',
-                    title: 'Welcome to Navidar'
-                },
-
-                html: [
-                    "Content here..."
-                ].join("")
+                items: [
+                    {
+                        docked: 'top',
+                        xtype: 'titlebar',
+                        title: 'Welcome to Navidar'
+                    },
+                    {
+                        xtype   : 'button',
+                        itemId  : 'friends',
+                        text    : 'Get friends'
+                    }
+                ]
             }
         ]
     }

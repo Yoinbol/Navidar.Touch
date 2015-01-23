@@ -649,7 +649,17 @@ Ext.ClassManager.addNameAlternateMappings({
   "Ext.viewport.WindowsPhone": [
     "Ext.viewport.WP"
   ],
-  "Navidar.view.Main": []
+  "Navidar.controller.Application": [],
+  "Navidar.controller.Base": [],
+  "Navidar.controller.Main": [],
+  "Navidar.controller.Start": [],
+  "Navidar.mixin.Serviceable": [],
+  "Navidar.service.Base": [],
+  "Navidar.service.Device": [],
+  "Navidar.service.Utility": [],
+  "Navidar.view.Main": [],
+  "Navidar.view.Start": [],
+  "Navidar.view.friends.FriendsList": []
 });
 Ext.ClassManager.addNameAliasMappings({
   "Ext.AbstractComponent": [],
@@ -1379,7 +1389,21 @@ Ext.ClassManager.addNameAliasMappings({
   "Ext.viewport.Ios": [],
   "Ext.viewport.Viewport": [],
   "Ext.viewport.WindowsPhone": [],
+  "Navidar.controller.Application": [],
+  "Navidar.controller.Base": [],
+  "Navidar.controller.Main": [],
+  "Navidar.controller.Start": [],
+  "Navidar.mixin.Serviceable": [],
+  "Navidar.service.Base": [],
+  "Navidar.service.Device": [],
+  "Navidar.service.Utility": [],
   "Navidar.view.Main": [
     "widget.main"
+  ],
+  "Navidar.view.Start": [
+    "widget.start-view"
+  ],
+  "Navidar.view.friends.FriendsList": [
+    "widget.friends-list"
   ]
 });

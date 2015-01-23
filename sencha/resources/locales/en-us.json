@@ -1,0 +1,16 @@
+{
+    "messageCatalog": {
+        "lang": "en-US",
+        "messages": {
+            "GLOBAL": {
+              "loading": "123...",
+              "networkRequired": "An internet connection is required for this action"
+            },
+            "START": {
+              "loginWithFb": "Login with facebook",
+              "checkingSession": "Checking...",
+              "gettingUserData": "Getting user data"
+            }
+        }
+    }
+}
