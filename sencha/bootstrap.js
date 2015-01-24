@@ -152,6 +152,9 @@ Ext.ClassManager.addNameAlternateMappings({
   "Ext.data.proxy.Direct": [
     "Ext.data.DirectProxy"
   ],
+  "Ext.data.proxy.EncodedLocalStorage": [
+    "Ext.data.EncodedLocalStorageProxy"
+  ],
   "Ext.data.proxy.JsonP": [
     "Ext.data.ScriptTagProxy"
   ],
@@ -653,13 +656,34 @@ Ext.ClassManager.addNameAlternateMappings({
   "Navidar.controller.Base": [],
   "Navidar.controller.Main": [],
   "Navidar.controller.Start": [],
+  "Navidar.controller.contributions.ContributionsNavigator": [],
+  "Navidar.controller.friends.FriendsNavigator": [],
+  "Navidar.controller.projects.UserProjectsNavigator": [],
   "Navidar.mixin.Serviceable": [],
+  "Navidar.model.Base": [],
+  "Navidar.model.User": [],
+  "Navidar.model.application.Session": [],
+  "Navidar.model.contributions.Contribution": [],
+  "Navidar.model.friends.Friend": [],
+  "Navidar.model.projects.Project": [],
+  "Navidar.service.Application": [],
   "Navidar.service.Base": [],
+  "Navidar.service.Configuration": [],
   "Navidar.service.Device": [],
   "Navidar.service.Utility": [],
+  "Navidar.store.Base": [],
+  "Navidar.store.contributions.Contributions": [],
+  "Navidar.store.friends.Friends": [],
+  "Navidar.store.projects.UserProjects": [],
   "Navidar.view.Main": [],
   "Navidar.view.Start": [],
-  "Navidar.view.friends.FriendsList": []
+  "Navidar.view.base.Navigator": [],
+  "Navidar.view.contributions.ContributionsNavigator": [],
+  "Navidar.view.contributions.UserContributions": [],
+  "Navidar.view.friends.FriendsList": [],
+  "Navidar.view.friends.FriendsNavigator": [],
+  "Navidar.view.projects.UserProjects": [],
+  "Navidar.view.projects.UserProjectsNavigator": []
 });
 Ext.ClassManager.addNameAliasMappings({
   "Ext.AbstractComponent": [],
@@ -831,6 +855,9 @@ Ext.ClassManager.addNameAliasMappings({
   "Ext.data.proxy.Client": [],
   "Ext.data.proxy.Direct": [
     "proxy.direct"
+  ],
+  "Ext.data.proxy.EncodedLocalStorage": [
+    "proxy.encodedlocalstorage"
   ],
   "Ext.data.proxy.JsonP": [
     "proxy.jsonp",
@@ -1393,17 +1420,50 @@ Ext.ClassManager.addNameAliasMappings({
   "Navidar.controller.Base": [],
   "Navidar.controller.Main": [],
   "Navidar.controller.Start": [],
+  "Navidar.controller.contributions.ContributionsNavigator": [],
+  "Navidar.controller.friends.FriendsNavigator": [],
+  "Navidar.controller.projects.UserProjectsNavigator": [],
   "Navidar.mixin.Serviceable": [],
+  "Navidar.model.Base": [],
+  "Navidar.model.User": [],
+  "Navidar.model.application.Session": [],
+  "Navidar.model.contributions.Contribution": [],
+  "Navidar.model.friends.Friend": [],
+  "Navidar.model.projects.Project": [],
+  "Navidar.service.Application": [],
   "Navidar.service.Base": [],
+  "Navidar.service.Configuration": [],
   "Navidar.service.Device": [],
   "Navidar.service.Utility": [],
+  "Navidar.store.Base": [],
+  "Navidar.store.contributions.Contributions": [],
+  "Navidar.store.friends.Friends": [],
+  "Navidar.store.projects.UserProjects": [],
   "Navidar.view.Main": [
     "widget.main"
   ],
   "Navidar.view.Start": [
     "widget.start-view"
   ],
+  "Navidar.view.base.Navigator": [
+    "widget.navigator"
+  ],
+  "Navidar.view.contributions.ContributionsNavigator": [
+    "widget.contributions-navigator"
+  ],
+  "Navidar.view.contributions.UserContributions": [
+    "widget.user-contributions"
+  ],
   "Navidar.view.friends.FriendsList": [
     "widget.friends-list"
+  ],
+  "Navidar.view.friends.FriendsNavigator": [
+    "widget.friends-navigator"
+  ],
+  "Navidar.view.projects.UserProjects": [
+    "widget.user-projects"
+  ],
+  "Navidar.view.projects.UserProjectsNavigator": [
+    "widget.user-projects-navigator"
   ]
 });

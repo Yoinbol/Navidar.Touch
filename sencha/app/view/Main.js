@@ -2,32 +2,22 @@ Ext.define('Navidar.view.Main', {
     extend: 'Ext.tab.Panel',
     xtype: 'main',
     requires: [
-        'Ext.TitleBar'
+        'Navidar.view.projects.UserProjectsNavigator',
+        'Navidar.view.contributions.ContributionsNavigator',
+        'Navidar.view.friends.FriendsNavigator'
     ],
     config: {
         tabBarPosition: 'bottom',
 
         items: [
             {
-                title: 'Home',
-                iconCls: 'home',
-
-                styleHtmlContent: true,
-                scrollable: true,
-                layout  : 'vbox',
-
-                items: [
-                    {
-                        docked: 'top',
-                        xtype: 'titlebar',
-                        title: 'Welcome to Navidar'
-                    },
-                    {
-                        xtype   : 'button',
-                        itemId  : 'friends',
-                        text    : 'Get friends'
-                    }
-                ]
+                xtype   : 'user-projects-navigator'
+            },
+            {
+                xtype   : 'contributions-navigator'
+            },
+            {
+                xtype   : 'friends-navigator'
             }
         ]
     }

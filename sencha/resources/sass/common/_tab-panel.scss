@@ -1,0 +1,15 @@
+.x-tabbar {
+  display : -webkit-box;
+  .x-tab {
+    -webkit-box-flex : 1;
+    box-flex         : 1;
+    background-color : $red;
+    color            : $white;
+    padding          : 5px;
+    border           : none;
+    border-top       : 4px solid $red;
+    &.x-tab-active {
+      border-top : 4px solid $white;
+    }
+  }
+}

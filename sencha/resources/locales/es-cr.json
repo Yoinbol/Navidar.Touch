@@ -6,11 +6,26 @@
             "loading": "Cargando",
             "networkRequired": "Se requiere una conexión a internet para esta acción"
           },
-            "START": {
-              "loginWithFb": "Iniciar con facebook",
-              "checkingSession": "Chequeando...",
-              "gettingUserData": "Leyendo datos del usuario"
-            }
+          "START": {
+            "loginWithFb": "Iniciar con facebook",
+            "checkingSession": "Chequeando...",
+            "gettingUserData": "Leyendo datos del usuario"
+          },
+          "USERPROJECTS": {
+            "tabtitle": "Mis proyectos",
+            "viewTitle": "Mis proyectos",
+            "noProjects": "No tienes ninún proyecto, comienza uno!"
+          },
+          "CONTRIBUTIONS": {
+            "tabtitle": "Contribuciones",
+            "viewTitle": "Contribuciones",
+            "noContributions": "No has realizado ninguna contribución. Qué estás esperando?!"
+          },
+          "FRIENDS": {
+            "tabtitle": "Amigos",
+            "viewTitle": "Amigos",
+            "noFriends": "No tienes ningún amigo en Navidar, invita algunos!"
+          }
         }
     }
 }

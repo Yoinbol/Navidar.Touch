@@ -7,6 +7,8 @@ Ext.define('Navidar.controller.Application', {
     extend  : 'Navidar.controller.Base',
 
     requires    : [
+        'Navidar.service.Configuration',
+        'Navidar.service.Application',
         'Navidar.service.Device',
         'Navidar.service.Utility'
     ],
@@ -25,6 +27,9 @@ Ext.define('Navidar.controller.Application', {
     init: function (app) {
         var me = this;
         me.initServices();
+
+        var appService = app.getService('application');
+        appService.loadSessionModel();
     },
 
     initServices: function () {
@@ -32,8 +37,10 @@ Ext.define('Navidar.controller.Application', {
             app = me.getApplication();
 
         app.services = {
-            device  : Ext.create('Navidar.service.Device', { application  : app }),
-            utility : Ext.create('Navidar.service.Utility', { application  : app })
+            configuration   : Ext.create('Navidar.service.Configuration', { application  : app }),
+            application     : Ext.create('Navidar.service.Application', { application  : app }),
+            device          : Ext.create('Navidar.service.Device', { application  : app }),
+            utility         : Ext.create('Navidar.service.Utility', { application  : app })
         };
     },
 

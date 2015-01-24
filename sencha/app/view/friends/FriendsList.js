@@ -8,6 +8,8 @@ Ext.define('Navidar.view.friends.FriendsList', {
     xtype   : 'friends-list',
 
     config  : {
-
+        title       : _getText('FRIENDS', 'viewTitle'),
+        emptyText   : _getText('FRIENDS', 'noFriends'),
+        store       : 'Friends'
     }
 });

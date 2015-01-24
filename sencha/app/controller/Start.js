@@ -52,6 +52,8 @@ Ext.define('Navidar.controller.Start', {
                 }
                 else {
                     //The user is not disconnected from fb or from the app
+                    var fbPermissions = me.getRequiredFacebookPermissions();
+
                     //Try to login the user on facebook
                     facebookConnectPlugin.login(fbPermissions, function (loginResponse) {
 
@@ -59,13 +61,13 @@ Ext.define('Navidar.controller.Start', {
                         me.getUserFacebookData();
 
                     }, function (error) {
-                        alert('Error!');
+                        alert('Error 1!');
                     });
                 }
 
             }, function (error) {
                 //Error getting the login status
-
+                alert('Error 2!');
             });
         }
         else {
@@ -98,7 +100,7 @@ Ext.define('Navidar.controller.Start', {
 
         }, function (error) {
             //Error getting the user data
-
+            alert('Error 3!');
         });
     }
 });

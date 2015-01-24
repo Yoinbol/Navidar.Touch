@@ -10,6 +10,21 @@
               "loginWithFb": "Login with facebook",
               "checkingSession": "Checking...",
               "gettingUserData": "Getting user data"
+            },
+            "USERPROJECTS": {
+              "tabtitle": "My projects",
+              "viewTitle": "My projects",
+              "noProjects": "You don't have any project, start one!"
+            },
+            "CONTRIBUTIONS": {
+              "tabtitle": "Contributions",
+              "viewTitle": "Contributions",
+              "noContributions": "You don't have done any contribution. What are you waiting for?!"
+            },
+            "FRIENDS": {
+              "tabtitle": "Friends",
+              "viewTitle": "Friends",
+              "noFriends": "You don't have any friend on Navidar, invite some!"
             }
         }
     }

@@ -22,7 +22,16 @@ Ext.application({
     controllers: [
         'Application',
         'Start',
-        'Main'
+        'Main',
+        'projects.UserProjectsNavigator',
+        'contributions.ContributionsNavigator',
+        'friends.FriendsNavigator'
+    ],
+
+    stores: [
+        'projects.UserProjects',
+        'contributions.Contributions',
+        'friends.Friends'
     ],
 
     icon: {
