@@ -65,3 +65,10 @@ cordova/platforms/android/local.properties
 
 ## ignore the xcode user specific workspace folder
 cordova/platforms/ios/Navidar.xcodeproj/project.xcworkspace/
+
+# touch
+sencha/build
+sencha/.sencha_backup
+sencha/resources/css/app.css
+sencha/bootstrap.js
+sencha/bootstrap.json
