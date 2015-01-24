@@ -45,6 +45,7 @@ Temporary Items
 
 ## ignore the cordova "build" folders.
 cordova/www
+cordova/platforms/ios/Navidar/
 cordova/platforms/ios/www/
 cordova/platforms/ios/openssl-xcode/
 cordova/platforms/ios/build/
@@ -65,10 +66,3 @@ cordova/platforms/android/local.properties
 
 ## ignore the xcode user specific workspace folder
 cordova/platforms/ios/Navidar.xcodeproj/project.xcworkspace/
-
-# touch
-sencha/build
-sencha/.sencha_backup
-sencha/resources/css/app.css
-sencha/bootstrap.js
-sencha/bootstrap.json
