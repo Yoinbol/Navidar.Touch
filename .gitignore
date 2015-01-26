@@ -73,6 +73,7 @@ sencha/.sencha_backup
 sencha/resources/css/app.css
 sencha/bootstrap.js
 sencha/bootstrap.json
+sencha/.idea/
 
 # Xcode
 xcuserdata/
