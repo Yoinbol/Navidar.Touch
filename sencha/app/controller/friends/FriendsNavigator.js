@@ -23,28 +23,24 @@ Ext.define('Navidar.controller.friends.FriendsNavigator', {
     },
 
     onFriendsNavigatorActivate: function (friendsNavigator) {
-        var me              = this,
-            friendsStore    = Ext.getStore('Friends');
+        var friendsStore = Ext.getStore('Friends');
 
         if(friendsStore.getInitialized() === false) {
 
+            var me              = this,
+                facebookService = me.getService('facebook');
+
+            //Mask the view
             me.mask(friendsNavigator);
-
             //Get user friends
-            facebookConnectPlugin.api('/me/friends', ['user_friends'], function (friendsResponse) {
-
+            facebookService.getFriends(function (friendsResponse) {
+                //Unmask the view
                 me.unmask(friendsNavigator);
-
-                console.log('User friends data', friendsResponse);
-
-                if(friendsResponse && !friendsResponse.error) {
+                //Validate the service response
+                if(friendsResponse.success === true) {
                     friendsStore.setData(friendsResponse.data);
                 }
-
-            }, function (error) {
-                //Error getting user friends
-                console.error(error);
-            });
+            }, me);
         }
     }
 });

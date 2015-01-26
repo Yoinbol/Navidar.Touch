@@ -8,7 +8,7 @@ Ext.define('Navidar.model.User', {
 
     config  : {
         fields  : [
-            { name: 'id', type: 'string' },
+            { name: 'user_id', type: 'string' },
             { name: 'first_name', type: 'string' },
             { name: 'last_name', type: 'string' },
             { name: 'middle_name', type: 'string' },

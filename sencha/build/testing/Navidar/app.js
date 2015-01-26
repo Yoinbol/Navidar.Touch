@@ -70709,8 +70709,6 @@ Ext.define('Navidar.controller.Base', {
 
     config  : {
 
-        requiredFacebookPermissions: ['public_profile', 'email', 'user_friends']
-
     },
 
     /**
@@ -70866,6 +70864,116 @@ Ext.define('Navidar.service.Utility', {
 
     config: {
 
+    }
+});
+
+/**
+ * Created by Diego Garcia on 1/25/15.
+ *
+ * Facebook data service
+ */
+Ext.define('Navidar.service.Facebook', {
+    extend  :  Navidar.service.Base ,
+
+    config  : {
+
+        requiredFacebookPermissions: ['public_profile', 'email', 'user_friends']
+
+    },
+
+    getLoginStatus: function (callback, scope) {
+        var me              = this,
+            callbackScope   = scope || me,
+            response        = {
+                success : true,
+                data    : null
+            };
+
+        facebookConnectPlugin.getLoginStatus(function (session) {
+
+            response.data = session;
+            callback && callback.call(callbackScope, response);
+
+        }, function (error) {
+            //Error getting the facebook login status
+            console.error('Error getting user login status', error);
+            response.success = false;
+            callback && callback.call(callbackScope, response);
+        });
+    },
+
+    login: function (callback, scope) {
+        var me              = this,
+            fbPermissions   = me.getRequiredFacebookPermissions(),
+            callbackScope   = scope || me,
+            response        = {
+                success : true,
+                data    : null
+            };
+
+        //Try to login the user on facebook
+        facebookConnectPlugin.login(fbPermissions, function (loginResponse) {
+
+            response.data = loginResponse;
+            callback && callback.call(callbackScope, response);
+
+        }, function (error) {
+            //Error login user
+            console.error('Error login user', error);
+            response.success = false;
+            callback && callback.call(callbackScope, response);
+        });
+    },
+
+    getMyData: function (callback, scope) {
+        var me              = this,
+            fbPermissions   = me.getRequiredFacebookPermissions(),
+            callbackScope   = scope || me,
+            response        = {
+                success : true,
+                data    : null
+            };
+
+        //Get fb user data
+        facebookConnectPlugin.api('/me', fbPermissions, function (userInfoResponse) {
+            response.data = userInfoResponse;
+            callback && callback.call(callbackScope, response);
+        }, function (error) {
+            //Error getting user data
+            console.error('Error getting user data', error);
+            response.success = false;
+            callback && callback.call(callbackScope, response);
+        });
+    },
+
+    getFriends: function (callback, scope) {
+        var me              = this,
+            callbackScope   = scope || me,
+            response        = {
+                success : true,
+                data    : null
+            };
+
+        facebookConnectPlugin.api('/me/friends', ['user_friends'], function (friendsResponse) {
+
+            console.log('User friends data', friendsResponse);
+
+            if(friendsResponse && !friendsResponse.error) {
+                response.data = friendsResponse.data;
+            }
+            else {
+                response.success = false;
+            }
+
+            callback && callback.call(callbackScope, response);
+
+        }, function (error) {
+            //Error getting user friends
+            console.error('Error getting user friends', error);
+
+            response.success = false;
+            callback && callback.call(callbackScope, response);
+        });
     }
 });
 
@@ -71068,7 +71176,8 @@ Ext.define('Navidar.controller.Application', {
                                         
                                       
                                  
-                                 
+                                  
+                                  
       
 
     config  : {
@@ -71098,7 +71207,8 @@ Ext.define('Navidar.controller.Application', {
             configuration   : Ext.create('Navidar.service.Configuration', { application  : app }),
             application     : Ext.create('Navidar.service.Application', { application  : app }),
             device          : Ext.create('Navidar.service.Device', { application  : app }),
-            utility         : Ext.create('Navidar.service.Utility', { application  : app })
+            utility         : Ext.create('Navidar.service.Utility', { application  : app }),
+            facebook        : Ext.create('Navidar.service.Facebook', { application  : app })
         };
     },
 
@@ -71110,39 +71220,47 @@ Ext.define('Navidar.controller.Application', {
     checkFacebookLoginStatus: function (callback, scope) {
         var me              = this,
             deviceService   = me.getService('device'),
+            appService      = me.getService('application'),
+            facebookService = me.getService('facebook'),
             callbackScope   = scope || me,
             response        = {
                 success         : true,
+                session         : appService.getSession(),
                 userData        : {}
             };
 
         if(deviceService.isOnline()) {
 
-            //Check the fb user session status
-            facebookConnectPlugin.getLoginStatus(function (session) {
+            facebookService.getLoginStatus(function (loginStatusResponse) {
 
-                if(session.status === 'connected') {
+                if(loginStatusResponse.success === true && loginStatusResponse.data) {
 
-                    var fbPermissions   = me.getRequiredFacebookPermissions();
+                    //Check the fb user session status
+                    if(loginStatusResponse.data.status === 'connected') {
 
-                    //Get fb user data
-                    facebookConnectPlugin.api('/me', fbPermissions, function (userInfoResponse) {
-                        response.userData = userInfoResponse;
+                        //Get the user data
+                        facebookService.getMyData(function (userDataResponse) {
+
+                            //Validate the service response
+                            if(userDataResponse.success === true) {
+                                response.userData = userDataResponse.data;
+                                callback && callback.call(callbackScope, response);
+                            }
+                        }, me);
+                    }
+                    else {
+                        // User is not connected to fb or the app
+                        response.success = false;
                         callback && callback.call(callbackScope, response);
-                    });
-
+                    }
                 }
                 else {
-                    // User is not connected to fb or the app
+                    //Error getting the facebook login status
                     response.success = false;
                     callback && callback.call(callbackScope, response);
                 }
 
-            }, function (error) {
-                //Error getting the facebook login status
-                response.success = false;
-                callback && callback.call(callbackScope, response);
-            });
+            }, me);
         }
         else {
             //Device is offline
@@ -71156,7 +71274,17 @@ Ext.define('Navidar.controller.Application', {
         // Destroy the #appLoadingIndicator element
         Ext.fly('appLoadingIndicator').destroy();
 
-        if(loginResponse.success === true) {
+        if(loginResponse.success === true || loginResponse.session) {
+
+            var session     = loginResponse.session,
+                userData    = loginResponse.userData;
+
+            //Update the user data (if there is a session and there is user data)
+            session && userData && session.setSessionData(userData);
+
+            setTimeout(function () {
+                console.log('Session record', session);
+            }, 10000);
 
             // Initialize the main view
             Ext.Viewport.add(Ext.create('Navidar.view.Main'));
@@ -71206,40 +71334,45 @@ Ext.define('Navidar.controller.Start', {
 
     loginWithFacebook: function () {
         var me              = this,
-            deviceService   = me.getService('device');
+            deviceService   = me.getService('device'),
+            facebookService = me.getService('facebook');
 
         if(deviceService.isOnline()) {
 
             me.mask(null, _getText('START', 'checkingSession'));
 
-            //Check the fb user session status
-            facebookConnectPlugin.getLoginStatus(function (session) {
+            //Get the user login status
+            facebookService.getLoginStatus(function (loginStatusResponse) {
 
                 me.unmask();
 
-                if(session.status === 'connected') {
+                //Validate the user login status response
+                if(loginStatusResponse.success === true) {
 
-                    //Get the user data and show the main view
-                    me.getUserFacebookData();
-                }
-                else {
-                    //The user is not disconnected from fb or from the app
-                    var fbPermissions = me.getRequiredFacebookPermissions();
-
-                    //Try to login the user on facebook
-                    facebookConnectPlugin.login(fbPermissions, function (loginResponse) {
+                    if(loginStatusResponse.data.status === 'connected') {
 
                         //Get the user data and show the main view
                         me.getUserFacebookData();
+                    }
+                    else {
+                        //Try to login the user on facebook
+                        facebookService.login(function (loginResponse) {
 
-                    }, function (error) {
-                        alert('Error 1!');
-                    });
+                            //Validate the login response
+                            if(loginResponse.success === true) {
+                                //Get the user data and show the main view
+                                me.getUserFacebookData();
+                            }
+                            else {
+                                me.showMessage('Error!');
+                            }
+                        }, me);
+                    }
                 }
-
-            }, function (error) {
-                //Error getting the login status
-                alert('Error 2!');
+                else {
+                    //Error getting the user login status
+                    me.showMessage('Error!');
+                }
             });
         }
         else {
@@ -71251,29 +71384,39 @@ Ext.define('Navidar.controller.Start', {
 
     getUserFacebookData: function () {
         var me              = this,
-            fbPermissions   = me.getRequiredFacebookPermissions();
+            facebookService = me.getService('facebook');
 
         me.mask(null, _getText('START', 'gettingUserData'));
 
-        //Get fb user data
-        facebookConnectPlugin.api('/me', fbPermissions, function (userInfoResponse) {
+        //Get the user data
+        facebookService.getMyData(function (userDataResponse) {
 
             me.unmask();
 
-            var currentView = Ext.Viewport.getActiveItem();
+            //Validate the service response
+            if(userDataResponse.success === true) {
 
-            // Initialize the main view
-            Ext.Viewport.add(Ext.create('Navidar.view.Main'));
+                var appService  = me.getService('application'),
+                    session     = appService.getSession() || Ext.create('Navidar.model.application.Session', { id: me.getService('configuration').getSessionModelId() }),
+                    currentView = Ext.Viewport.getActiveItem();
 
-            //Destroy the current view (if applies)
-            if(currentView) {
-                currentView.destroy();
+                me.unmask();
+
+                //Update the user data
+                session && userDataResponse && session.setSessionData(userDataResponse.data);
+
+                // Initialize the main view
+                Ext.Viewport.add(Ext.create('Navidar.view.Main'));
+
+                //Destroy the current view (if applies)
+                if(currentView) {
+                    currentView.destroy();
+                }
             }
-
-        }, function (error) {
-            //Error getting the user data
-            alert('Error 3!');
-        });
+            else {
+                alert('Error getting user data!');
+            }
+        }, me);
     }
 });
 
@@ -71380,28 +71523,24 @@ Ext.define('Navidar.controller.friends.FriendsNavigator', {
     },
 
     onFriendsNavigatorActivate: function (friendsNavigator) {
-        var me              = this,
-            friendsStore    = Ext.getStore('Friends');
+        var friendsStore = Ext.getStore('Friends');
 
         if(friendsStore.getInitialized() === false) {
 
+            var me              = this,
+                facebookService = me.getService('facebook');
+
+            //Mask the view
             me.mask(friendsNavigator);
-
             //Get user friends
-            facebookConnectPlugin.api('/me/friends', ['user_friends'], function (friendsResponse) {
-
+            facebookService.getFriends(function (friendsResponse) {
+                //Unmask the view
                 me.unmask(friendsNavigator);
-
-                console.log('User friends data', friendsResponse);
-
-                if(friendsResponse && !friendsResponse.error) {
+                //Validate the service response
+                if(friendsResponse.success === true) {
                     friendsStore.setData(friendsResponse.data);
                 }
-
-            }, function (error) {
-                //Error getting user friends
-                console.error(error);
-            });
+            }, me);
         }
     }
 });
@@ -71513,7 +71652,7 @@ Ext.define('Navidar.model.User', {
 
     config  : {
         fields  : [
-            { name: 'id', type: 'string' },
+            { name: 'user_id', type: 'string' },
             { name: 'first_name', type: 'string' },
             { name: 'last_name', type: 'string' },
             { name: 'middle_name', type: 'string' },
@@ -71657,6 +71796,24 @@ Ext.define('Navidar.model.application.Session', {
         proxy: {
             type : 'encodedlocalstorage'
         }
+    },
+
+    setSessionData: function (data) {
+        var me      = this;
+
+        me.set('user_id', data.id);
+        me.set('first_name', data.first_name);
+        me.set('last_name', data.last_name);
+        me.set('middle_name', data.middle_name);
+        me.set('name', data.name);
+        me.set('gender', data.gender);
+        me.set('email', data.email);
+
+        if(data.locale) { //!me.get('locale') &&
+            me.set('locale', data.locale.toLowerCase().replace('_', '-'));
+        }
+
+        me.save();
     }
 });
 

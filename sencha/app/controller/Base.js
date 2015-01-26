@@ -12,8 +12,6 @@ Ext.define('Navidar.controller.Base', {
 
     config  : {
 
-        requiredFacebookPermissions: ['public_profile', 'email', 'user_friends']
-
     },
 
     /**

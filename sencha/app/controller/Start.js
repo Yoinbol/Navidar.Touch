@@ -34,40 +34,45 @@ Ext.define('Navidar.controller.Start', {
 
     loginWithFacebook: function () {
         var me              = this,
-            deviceService   = me.getService('device');
+            deviceService   = me.getService('device'),
+            facebookService = me.getService('facebook');
 
         if(deviceService.isOnline()) {
 
             me.mask(null, _getText('START', 'checkingSession'));
 
-            //Check the fb user session status
-            facebookConnectPlugin.getLoginStatus(function (session) {
+            //Get the user login status
+            facebookService.getLoginStatus(function (loginStatusResponse) {
 
                 me.unmask();
 
-                if(session.status === 'connected') {
+                //Validate the user login status response
+                if(loginStatusResponse.success === true) {
 
-                    //Get the user data and show the main view
-                    me.getUserFacebookData();
-                }
-                else {
-                    //The user is not disconnected from fb or from the app
-                    var fbPermissions = me.getRequiredFacebookPermissions();
-
-                    //Try to login the user on facebook
-                    facebookConnectPlugin.login(fbPermissions, function (loginResponse) {
+                    if(loginStatusResponse.data.status === 'connected') {
 
                         //Get the user data and show the main view
                         me.getUserFacebookData();
+                    }
+                    else {
+                        //Try to login the user on facebook
+                        facebookService.login(function (loginResponse) {
 
-                    }, function (error) {
-                        alert('Error 1!');
-                    });
+                            //Validate the login response
+                            if(loginResponse.success === true) {
+                                //Get the user data and show the main view
+                                me.getUserFacebookData();
+                            }
+                            else {
+                                me.showMessage('Error!');
+                            }
+                        }, me);
+                    }
                 }
-
-            }, function (error) {
-                //Error getting the login status
-                alert('Error 2!');
+                else {
+                    //Error getting the user login status
+                    me.showMessage('Error!');
+                }
             });
         }
         else {
@@ -79,28 +84,38 @@ Ext.define('Navidar.controller.Start', {
 
     getUserFacebookData: function () {
         var me              = this,
-            fbPermissions   = me.getRequiredFacebookPermissions();
+            facebookService = me.getService('facebook');
 
         me.mask(null, _getText('START', 'gettingUserData'));
 
-        //Get fb user data
-        facebookConnectPlugin.api('/me', fbPermissions, function (userInfoResponse) {
+        //Get the user data
+        facebookService.getMyData(function (userDataResponse) {
 
             me.unmask();
 
-            var currentView = Ext.Viewport.getActiveItem();
+            //Validate the service response
+            if(userDataResponse.success === true) {
 
-            // Initialize the main view
-            Ext.Viewport.add(Ext.create('Navidar.view.Main'));
+                var appService  = me.getService('application'),
+                    session     = appService.getSession() || Ext.create('Navidar.model.application.Session', { id: me.getService('configuration').getSessionModelId() }),
+                    currentView = Ext.Viewport.getActiveItem();
 
-            //Destroy the current view (if applies)
-            if(currentView) {
-                currentView.destroy();
+                me.unmask();
+
+                //Update the user data
+                session && userDataResponse && session.setSessionData(userDataResponse.data);
+
+                // Initialize the main view
+                Ext.Viewport.add(Ext.create('Navidar.view.Main'));
+
+                //Destroy the current view (if applies)
+                if(currentView) {
+                    currentView.destroy();
+                }
             }
-
-        }, function (error) {
-            //Error getting the user data
-            alert('Error 3!');
-        });
+            else {
+                alert('Error getting user data!');
+            }
+        }, me);
     }
 });
