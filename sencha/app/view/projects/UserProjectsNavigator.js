@@ -9,7 +9,7 @@ Ext.define('Navidar.view.projects.UserProjectsNavigator', {
     ],
 
     config  : {
-        title   : _getText('USERPROJECTS', 'tabtitle'),
+        title   : '<i class="ion-clipboard"></i><span class="label">' + _getText('USERPROJECTS', 'tabtitle') + '</span>',
         iconCls : 'home',
 
         items   : [

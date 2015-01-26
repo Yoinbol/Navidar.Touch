@@ -11,7 +11,7 @@ Ext.define('Navidar.view.contributions.ContributionsNavigator', {
     ],
 
     config  : {
-        title   : _getText('CONTRIBUTIONS', 'tabtitle'),
+        title   : '<i class="ion-heart"></i><span class="label">' + _getText('CONTRIBUTIONS', 'tabtitle') + '</span>',
         iconCls : 'home',
 
         items   : [

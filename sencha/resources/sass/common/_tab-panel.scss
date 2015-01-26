@@ -5,11 +5,15 @@
     box-flex         : 1;
     background-color : $red;
     color            : $white;
-    padding          : 5px;
+    padding          : 8px 5px;
     border           : none;
     border-top       : 4px solid $red;
+    font-size        : 13px;
     &.x-tab-active {
       border-top : 4px solid $white;
+    }
+    .label {
+      margin-left: 3px;
     }
   }
 }

@@ -11,7 +11,7 @@ Ext.define('Navidar.view.friends.FriendsNavigator', {
     ],
 
     config  : {
-        title   : _getText('FRIENDS', 'tabtitle'),
+        title   : '<i class="ion-person-stalker"></i><span class="label">' + _getText('FRIENDS', 'tabtitle') + '</span>',
         iconCls : 'home',
 
         items   : [
